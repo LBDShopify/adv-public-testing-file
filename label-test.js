@@ -10,6 +10,59 @@ homeImageSelectors = [
     "li .product-card", //Horizon search page
 ]
 
+async function findProductId(media) {
+    // find product id
+    let productId = null;
+
+    // Step A: find nearest [data-product-id]
+    let wrapper = media.closest("[data-product-id]");
+    if (wrapper) {
+        productId = wrapper.getAttribute("data-product-id");
+    }
+
+    // Step B: if null, find [product-id]
+    if (!productId) {
+        wrapper = media.closest("[product-id]");
+        if (wrapper) {
+            productId = wrapper.getAttribute("product-id");
+        }
+    }
+
+    // choose a container to search inside (works for many themes)
+    const container = media.closest(homeImageClosestSelectors)
+
+    // Step C: find anchor with id containing CardLink / StandardCardNoMediaLink and extract trailing digits
+    if (!productId && container) {
+        const linkWithId = container.querySelector(
+            'a[id*="StandardCardNoMediaLink"], a[id*="CardLink"], a[id*="NoMediaStandardLink"]'
+        );
+        if (linkWithId && linkWithId.id) {
+            const match = linkWithId.id.match(/(\d+)$/);
+            if (match) {
+                productId = match[1];
+            }
+        }
+    }
+
+    // Step D: find an <a href="/products/..."> inside the same container and fetch product id by handle
+    if (!productId && container) {
+        const linkByHref = container.querySelector('a[href*="/products/"]');
+        if (linkByHref) {
+            const href = linkByHref.getAttribute('href');
+            const idFromHandle = await getProductIdByHandle(href);
+            if (idFromHandle) {
+                productId = idFromHandle
+            }
+        }
+    }
+
+    // if null, undefined, empty string, or not a number -> return
+    if (productId == null || isNaN(Number(productId))) {
+        return null;
+    }
+
+    return productId
+}
 
 async function fetchLabelForProductIds(productIds) {
     console.log("fetchLabelForProductIds started, productIds: ", productIds);
