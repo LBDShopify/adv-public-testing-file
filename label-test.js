@@ -10,6 +10,9 @@ homeImageSelectors = [
     "li .product-card", //Horizon search page
 ]
 
+// the first selector in homeImageSelectors to find closet, and find id in id="StandardCardNoMediaLink-template--23744523567378__featured_collection-10064630153490"
+homeImageClosestSelectors = 'li, .resource-list__item, .product-card, .product-item, .product-card, .grid-product, .product-card-item'
+
 async function findProductId(media) {
     // find product id
     let productId = null;
