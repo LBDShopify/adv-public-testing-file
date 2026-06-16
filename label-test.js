@@ -79,7 +79,7 @@ async function fetchLabelForProductIds(productIds) {
             })
         });
 
-        if (!res.ok) throw new Error("Fetch error");
+        if (!res.ok) throw new Error("fetchLabelForProductIds error");
 
         return await res.json(); // return MAP { productId: [labels] }
     } catch (err) {
@@ -100,10 +100,16 @@ async function mainFunctionLabels() {
         }
     }
 
-    if (!selectorFound) return;
+    if (!selectorFound) {
+        console.warn("no selector found for home image");
+        return;
+    }
 
     const productMedias = document.querySelectorAll(selectorFound);
-    if (!productMedias.length) return;
+    if (!productMedias.length) {
+        console.warn("productMedias elements not found");
+        return;
+    }
 
     // STEP 1: Collect all productIds
     const mediaMap = new Map(); // productId -> [media elements]
@@ -121,6 +127,7 @@ async function mainFunctionLabels() {
     }
 
     const productIds = Array.from(mediaMap.keys());
+    console.log("fetchLabelForProductIds productIds: ", productIds);
 
     if (!productIds.length) return;
 
@@ -182,6 +189,7 @@ function updateLabelImageOnPage(data, cardMedia) {
 
     // ✅ prevent duplicate render
     if (imageContainer.querySelector(`[data-label-id="${data.id}"]`)) {
+        console.warn("updateLabelImageOnPage return, no data-label-id");
         return;
     }
 
@@ -409,6 +417,7 @@ function updateLabelTextOnPage(data, cardMedia) {
     }
 
     if (!Array.isArray(data.showOnPages) || !data.showOnPages.includes("HOME_PAGE")) {
+        console.warn("updateLabelTextOnPage return, no HOME_PAGE");
         return;
     }
 
@@ -417,6 +426,7 @@ function updateLabelTextOnPage(data, cardMedia) {
 
     // ✅ prevent duplicate render
     if (imageContainer.querySelector(`[data-label-text-id="${data.id}"]`)) {
+        console.warn("updateLabelTextOnPage return, no data-label-text-id");
         return;
     }
 
