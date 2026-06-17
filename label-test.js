@@ -9,6 +9,7 @@ homeImageSelectors = [
     ".product-card-item .image--aspectSize", //Debut
     "li .product-card", //Horizon search page
     "product-card",
+    ".grid-view-item-image",
 ]
 
 // the first selector in homeImageSelectors to find closet, and find id in id="StandardCardNoMediaLink-template--23744523567378__featured_collection-10064630153490"
