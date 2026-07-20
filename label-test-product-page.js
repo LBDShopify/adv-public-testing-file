@@ -706,9 +706,11 @@ function renderLabelTextOnMainProductPage(data, productMedia) {
     productMedia.appendChild(outer);
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-    fetchLabelDetailOnMainProductPage();
-})
+fetchLabelDetailOnMainProductPage();
+
+
+
+
 
 async function fetchLabelForProducts(productIds, productHandles) {
     try {
