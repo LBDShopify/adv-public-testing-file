@@ -53,7 +53,7 @@ document.addEventListener("DOMContentLoaded", function () {
     try {
 
       const res = await fetch(
-        `${API_URL}/api/v1/testing/label/app-embed/product-ids-or-handles`,
+        `http://localhost:8080/api/v1/testing/label/app-embed/product-ids-or-handles`,
         {
           method: "POST",
           headers: {
