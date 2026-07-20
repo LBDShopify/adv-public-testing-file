@@ -930,16 +930,16 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // ✅ GLOBAL CACHE (outside function)
-    const injectedAnimations = new Set();
+    const injectedAnimationsTest = new Set();
 
     function ensureAnimationStyle(animationName, keyframeCSS) {
-        if (injectedAnimations.has(animationName)) return;
+        if (injectedAnimationsTest.has(animationName)) return;
 
         const styleTag = document.createElement("style");
         styleTag.textContent = keyframeCSS;
         document.head.appendChild(styleTag);
 
-        injectedAnimations.add(animationName);
+        injectedAnimationsTest.add(animationName);
     }
 
     function updateLabelImageOnPage(data, cardMedia) {
@@ -1172,8 +1172,8 @@ document.addEventListener("DOMContentLoaded", function () {
         imageContainer.appendChild(labelImg);
     }
 
-    const injectedTextAnimations = new Set();
-    const loadedFonts = new Set();
+    const injectedTextAnimationsTest = new Set();
+    const loadedFontsTest = new Set();
 
     function updateLabelTextOnPage(data, cardMedia) {
         if (!data || !data.id || !data.content) {
@@ -1259,7 +1259,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         function loadGoogleFontIfNeeded(fontName) {
-            if (!fontName || loadedFonts.has(fontName)) return;
+            if (!fontName || loadedFontsTest.has(fontName)) return;
 
             const fontSlug = fontName.replace(/ /g, "+");
             const fontUrl = `https://fonts.googleapis.com/css2?family=${fontSlug}&display=swap`;
@@ -1269,7 +1269,7 @@ document.addEventListener("DOMContentLoaded", function () {
             link.rel = "stylesheet";
             document.head.appendChild(link);
 
-            loadedFonts.add(fontName);
+            loadedFontsTest.add(fontName);
         }
 
         function addText(x, y, rotate = 0) {
@@ -1424,11 +1424,11 @@ document.addEventListener("DOMContentLoaded", function () {
                     break;
             }
 
-            if (!injectedTextAnimations.has(animationName)) {
+            if (!injectedTextAnimationsTest.has(animationName)) {
                 const styleSheet = document.createElement("style");
                 styleSheet.innerHTML = keyframes;
                 document.head.appendChild(styleSheet);
-                injectedTextAnimations.add(animationName);
+                injectedTextAnimationsTest.add(animationName);
             }
 
             outer.style.animation = `${animationName} ${data.duration}s ${data.repeatAnimation}`;
