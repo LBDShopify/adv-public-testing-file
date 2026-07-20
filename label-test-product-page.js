@@ -39,14 +39,6 @@ async function findProductId(media) {
 
 
 async function fetchLabelDetailOnMainProductPage() {
-    if (currentPage !== "PRODUCT_PAGE") {
-        return; // ❌ Not product page, do nothing
-    }
-
-    if (!token || token.trim() === "" || !productId) {
-        console.warn("Token or Product ID is missing. Skipping request.");
-        return;
-    }
     try {
         const response = await fetch(`http://localhost:8080/api/v1/testing/label/get-active-by-product`, {
             method: "POST", // Use POST because there's a request body
@@ -55,7 +47,7 @@ async function fetchLabelDetailOnMainProductPage() {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                productIds: 9865131426066
+                productId: 9865131426066
             })
         })
 
