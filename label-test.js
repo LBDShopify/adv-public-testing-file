@@ -170,6 +170,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   async function mainFunctionLabels() {
+    console.log("mainFunctionLabels, start")
 
     const productRoots = findAllProductRoots();
     console.log("mainFunctionLabels, productRoots: ", productRoots)
