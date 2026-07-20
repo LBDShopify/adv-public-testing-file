@@ -16,12 +16,9 @@ async function findProductId(media) {
         }
     }
 
-    // choose a container to search inside (works for many themes)
-    const container = media.closest(homeImageClosestSelectors)
-
     // Step C: find anchor with id containing CardLink / StandardCardNoMediaLink and extract trailing digits
-    if (!productId && container) {
-        const linkWithId = container.querySelector(
+    if (!productId && media) {
+        const linkWithId = media.querySelector(
             'a[id*="StandardCardNoMediaLink"], a[id*="CardLink"], a[id*="NoMediaStandardLink"]'
         );
         if (linkWithId && linkWithId.id) {
