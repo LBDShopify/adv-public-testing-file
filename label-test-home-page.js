@@ -106,8 +106,6 @@ function containsOnlyOneProduct(node) {
             handles.add(handle);
         }
     }
-    console.log("mainFunctionLabels selectorFound: ", selectorFound);
-
     return handles.size === 1;
 }
 
