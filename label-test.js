@@ -1,12 +1,4 @@
-document.addEventListener("DOMContentLoaded", function () {
-  if (currentPage !== "HOME_PAGE") {
-    return; // ❌ Not home page, do nothing
-  }
-  if (!token || token.trim() === "") {
-    return;
-  }
-  
-  async function findProductId(media) {
+	async function findProductId(media) {
 	  // find product id
 	  let productId = null;
 
@@ -765,4 +757,3 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   mainFunctionLabels();
-})
