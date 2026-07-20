@@ -123,7 +123,7 @@ async function fetchLabelDetailOnMainProductPage() {
 }
 
 // 🔥 cache keyframes (add this OUTSIDE function, only once)
-const asfAnimationCache = new Set();
+const asfAnimationCacheTest = new Set();
 
 function findGalleryContainer(productContainer) {
     if (!productContainer) return null;
@@ -334,7 +334,7 @@ function renderLabelImageOnMainProductPage(data, productMedia) {
         const transformPrefix = labelImg.style.transform || "";
         const animationName = `asf_${animation}_${data.id}`;
 
-        if (!asfAnimationCache.has(animationName)) {
+        if (!asfAnimationCacheTest.has(animationName)) {
             const keyframes = document.createElement("style");
             keyframes.type = "text/css";
             let keyframeCSS = "";
@@ -424,7 +424,7 @@ function renderLabelImageOnMainProductPage(data, productMedia) {
             if (keyframeCSS) {
                 keyframes.innerHTML = keyframeCSS;
                 document.head.appendChild(keyframes);
-                asfAnimationCache.add(animationName);
+                asfAnimationCacheTest.add(animationName);
             }
         }
 
@@ -437,8 +437,8 @@ function renderLabelImageOnMainProductPage(data, productMedia) {
 }
 
 // 🔥 GLOBAL CACHE (add once outside)
-const asfTextAnimationCache = new Set();
-const asfFontCache = new Set();
+const asfTextAnimationCacheTest = new Set();
+const asfFontCacheTest = new Set();
 
 function renderLabelTextOnMainProductPage(data, productMedia) {
     if (getComputedStyle(productMedia).position === "static") {
@@ -521,13 +521,13 @@ function renderLabelTextOnMainProductPage(data, productMedia) {
         const fontSlug = fontName.replace(/ /g, "+");
         const fontUrl = `https://fonts.googleapis.com/css2?family=${fontSlug}&display=swap`;
 
-        if (!asfFontCache.has(fontUrl)) {
+        if (!asfFontCacheTest.has(fontUrl)) {
             const link = document.createElement("link");
             link.href = fontUrl;
             link.rel = "stylesheet";
             document.head.appendChild(link);
 
-            asfFontCache.add(fontUrl);
+            asfFontCacheTest.add(fontUrl);
         }
     }
 
@@ -641,7 +641,7 @@ function renderLabelTextOnMainProductPage(data, productMedia) {
         const opacity = data.opacity / 100;
         const animationName = `asf_text_${data.animationType}_${data.id}`;
 
-        if (!asfTextAnimationCache.has(animationName)) {
+        if (!asfTextAnimationCacheTest.has(animationName)) {
             let keyframes = "";
 
             switch (data.animationType) {
@@ -695,7 +695,7 @@ function renderLabelTextOnMainProductPage(data, productMedia) {
                 const styleSheet = document.createElement("style");
                 styleSheet.innerHTML = keyframes;
                 document.head.appendChild(styleSheet);
-                asfTextAnimationCache.add(animationName);
+                asfTextAnimationCacheTest.add(animationName);
             }
         }
 
