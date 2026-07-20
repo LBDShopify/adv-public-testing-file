@@ -49,7 +49,7 @@
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${token}`,
+            "Authorization": `Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI5MDgwNzQwMjc3MCIsInJvbGVzIjpbIlVTRVIiXSwidXNlcmlkIjoxLCJpYXQiOjE3ODE0OTY5MzJ9.sREm2SXqvm0_TmbexjR1Iddeh8OsagVe_9AlghHpfmw`,
             "Content-Type": "application/json"
           },
           body: JSON.stringify({
