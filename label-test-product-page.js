@@ -91,6 +91,8 @@ async function fetchLabelDetailOnMainProductPage() {
 
         const images = gallery.querySelectorAll("img");
 
+        console.log("fetchLabelDetailOnMainProductPage, images: ", images)
+
         for (const label of productPageLabels) {
 
             if (label && label.type === "IMAGE" && label.iconUrl) {
@@ -144,6 +146,7 @@ function findGalleryContainer(productContainer) {
 }
 
 function findMainProductContainer() {
+
     const form =
         document.querySelector('form[action*="/cart/add"]') ||
         document.querySelector("product-form");
@@ -151,22 +154,48 @@ function findMainProductContainer() {
     if (!form) return null;
 
     let node = form;
-    let candidate = null;
 
     while (node && node !== document.body) {
 
         const images = [...node.querySelectorAll("img")]
             .filter(isRealProductImage);
 
-        if (images.length > 0) {
-            candidate = node;
+        // Found the first ancestor containing real product images
+        if (images.length) {
+            console.log("findMainProductContainer, node: ", node)
+            return node;
         }
 
         node = node.parentElement;
     }
-    console.log("findMainProductContainer, candidate: ", candidate)
-    return candidate;
+
+    return null;
 }
+
+// function findMainProductContainer() {
+//     const form =
+//         document.querySelector('form[action*="/cart/add"]') ||
+//         document.querySelector("product-form");
+//
+//     if (!form) return null;
+//
+//     let node = form;
+//     let candidate = null;
+//
+//     while (node && node !== document.body) {
+//
+//         const images = [...node.querySelectorAll("img")]
+//             .filter(isRealProductImage);
+//
+//         if (images.length > 0) {
+//             candidate = node;
+//         }
+//
+//         node = node.parentElement;
+//     }
+//     console.log("findMainProductContainer, candidate: ", candidate)
+//     return candidate;
+// }
 
 function isRealProductImage(img) {
     if (!(img instanceof HTMLImageElement)) {
@@ -180,9 +209,15 @@ function isRealProductImage(img) {
 
     // Rendered size
     const rect = img.getBoundingClientRect();
+    console.log("isRealProductImage, getBoundingClientRect, rect width height: ", rect.width, rect.height)
+
     if (rect.width < 80 || rect.height < 80) {
+        console.log("isRealProductImage, rect.width < 80 || rect.height < 80 return false")
         return false;
     }
+
+    console.log("isRealProductImage, getBoundingClientRect, img.complete: ", img.complete)
+    console.log("isRealProductImage, getBoundingClientRect, naturalWidth width height: ", rect.naturalWidth, rect.naturalHeight)
 
     // Natural image size (after loaded)
     return !(img.complete &&
@@ -699,9 +734,6 @@ function renderLabelTextOnMainProductPage(data, productMedia) {
 }
 
 fetchLabelDetailOnMainProductPage();
-
-
-
 
 
 async function fetchLabelForProducts(productIds, productHandles) {
