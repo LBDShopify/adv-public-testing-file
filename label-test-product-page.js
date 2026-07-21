@@ -229,6 +229,14 @@ function renderLabelImageOnMainProductPage(data, productMedia) {
     const container = productMedia.querySelector("img")?.parentElement;
     if (!container) return;
 
+    const rect = container.getBoundingClientRect();
+    console.log("renderLabelTextOnMainProductPage, container add label image rect.width: ", rect.width);
+    console.log("renderLabelTextOnMainProductPage, container add label image rect.height: ", rect.height);
+    // Ignore small containers (icons, thumbnails, logos, etc.)
+    if (rect.width < 150 || rect.height < 150) {
+        return;
+    }
+
     container.style.position = "relative";
     container.style.overflow = "visible";
 
@@ -484,6 +492,13 @@ function renderLabelTextOnMainProductPage(data, productMedia) {
     const productRect = productMedia.getBoundingClientRect();
     const imageWidth = productRect.width;
     const imageHeight = productRect.height;
+
+    console.log("renderLabelTextOnMainProductPage, container add label text imageWidth: ", imageWidth);
+    console.log("renderLabelTextOnMainProductPage, container add label text imageHeight: ", imageHeight);
+    // Ignore small containers (icons, thumbnails, logos, etc.)
+    if (imageWidth < 150 || imageHeight < 150) {
+        return;
+    }
 
     const offsetLeft = imageWidth * (data.marginLeft / 100) - widthSVG * (data.marginLeft / 100);
     const offsetTop = imageHeight * (data.marginTop / 100) - heightSVG * (data.marginTop / 100);
