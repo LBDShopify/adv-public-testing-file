@@ -1,4 +1,4 @@
-async function findProductId(media) {
+async function findProductIdFromMedia(media) {
     // find product id
     let productId = null;
 

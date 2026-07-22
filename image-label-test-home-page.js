@@ -1,4 +1,4 @@
-async function findProductId(media) {
+async function findProductIdFromMedia(media) {
     // find product id
     let productId = null;
 
@@ -169,7 +169,7 @@ async function mainFunctionLabels() {
     const productHandles = [];
 
     for (const root of productRoots) {
-        const productId = await findProductId(root);
+        const productId = await findProductIdFromMedia(root);
         const handle = findProductHandle(root);
 
         rootMap.push({
