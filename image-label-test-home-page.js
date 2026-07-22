@@ -588,12 +588,15 @@ function updateLabelTextOnPage(data, cardMedia) {
     function addText(x, y, rotate = 0) {
         loadGoogleFontIfNeeded(data.font);
 
+        const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
+        const fontSizeForText = isMobile ? data.fontSizeMobile : data.fontSize;
+
         const text = document.createElementNS(svgNS, "text");
         text.setAttribute("x", x);
         text.setAttribute("y", y);
         text.setAttribute("text-anchor", "middle");
         text.setAttribute("dominant-baseline", "middle");
-        text.setAttribute("font-size", data.fontSize);
+        text.setAttribute("font-size", fontSizeForText);
         text.setAttribute("fill", data.textColor);
         text.setAttribute("font-family", data.font);
 

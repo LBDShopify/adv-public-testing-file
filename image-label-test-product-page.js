@@ -576,12 +576,15 @@ function renderLabelTextOnMainProductPage(data, productMedia) {
     function addText(x, y, rotate = 0) {
         loadGoogleFontIfNeeded(data.font);
 
+        const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
+        const fontSizeForText = isMobile ? data.fontSizeMobile : data.fontSize;
+
         const text = document.createElementNS(svgNS, "text");
         text.setAttribute("x", x);
         text.setAttribute("y", y);
         text.setAttribute("text-anchor", "middle");
         text.setAttribute("dominant-baseline", "middle");
-        text.setAttribute("font-size", data.fontSize);
+        text.setAttribute("font-size", fontSizeForText);
         text.setAttribute("fill", data.textColor);
         text.setAttribute("font-family", data.font);
 
@@ -871,19 +874,29 @@ function findAllProductRoots() {
     return [...roots];
 }
 
+const processedRoots = new WeakSet();
+
 async function mainFunctionLabels() {
+    console.log("---------- list product, mainFunctionLabels start ----------");
 
-    const productRoots = findAllProductRoots();
-    console.log(" ---------- list product, mainFunctionLabels, productRoots: ", productRoots)
+    const allRoots = findAllProductRoots();
 
-    if (!productRoots.length) return;
+    // Only process new roots
+    const productRoots = allRoots.filter(root => !processedRoots.has(root));
+
+    if (!productRoots.length) {
+        return;
+    }
+
+    console.log("New productRoots:", productRoots);
 
     const rootMap = [];
     const productIds = [];
     const productHandles = [];
 
     for (const root of productRoots) {
-        const productId = await findProductId(root);
+
+        const productId = await findProductIdFromMedia(root);
         const handle = findProductHandle(root);
 
         rootMap.push({
@@ -901,11 +914,7 @@ async function mainFunctionLabels() {
         }
     }
 
-    console.log(" ---------- list product, mainFunctionLabels, productIds: ", productIds)
-    console.log(" ---------- list product, mainFunctionLabels, productHandles: ", productHandles)
-
     const uniqueIds = [...new Set(productIds)];
-
     const uniqueHandles = [...new Set(productHandles)];
 
     const labelMap = await fetchLabelForProducts(
@@ -913,27 +922,16 @@ async function mainFunctionLabels() {
         uniqueHandles
     );
 
-    console.log(" ---------- list product, labelMap: ", labelMap)
+    console.log("labelMap:", labelMap);
 
     for (const item of rootMap) {
 
         let labels = [];
 
         if (item.productId && labelMap[item.productId]) {
-
             labels = labelMap[item.productId];
-
-        } else if (
-            item.handle &&
-            labelMap[item.handle]
-        ) {
-
+        } else if (item.handle && labelMap[item.handle]) {
             labels = labelMap[item.handle];
-
-        }
-
-        if (!labels.length) {
-            continue;
         }
 
         const pageLabels = labels.filter(label =>
@@ -943,22 +941,19 @@ async function mainFunctionLabels() {
 
         for (const label of pageLabels) {
 
-            if (
-                label.type === "IMAGE" &&
-                label.iconUrl
-            ) {
+            if (label.type === "IMAGE" && label.iconUrl) {
                 updateLabelImageOnPage(label, item.root);
             }
 
-            if (
-                label.type === "TEXT" &&
-                label.content
-            ) {
+            if (label.type === "TEXT" && label.content) {
                 updateLabelTextOnPage(label, item.root);
             }
         }
-    }
 
+        // Mark processed AFTER rendering
+        console.log("+++++++++++++++ processedRoots add item ++++++++++++++++: ", processedRoots);
+        processedRoots.add(item.root);
+    }
 }
 
 // ✅ GLOBAL CACHE (outside function)
@@ -1307,12 +1302,17 @@ function updateLabelTextOnPage(data, cardMedia) {
     function addText(x, y, rotate = 0) {
         loadGoogleFontIfNeeded(data.font);
 
+        const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
+        const fontSizeForText = isMobile ? data.fontSizeMobile : data.fontSize;
+
         const text = document.createElementNS(svgNS, "text");
         text.setAttribute("x", x);
         text.setAttribute("y", y);
         text.setAttribute("text-anchor", "middle");
         text.setAttribute("dominant-baseline", "middle");
-        text.setAttribute("font-size", data.fontSize);
+
+        text.setAttribute("font-size", fontSizeForText);
+
         text.setAttribute("fill", data.textColor);
         text.setAttribute("font-family", data.font);
 
