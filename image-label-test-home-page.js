@@ -52,8 +52,7 @@ function findProductIdFromMedia(media) {
         return null;
     }
 
-    return productId
-}
+    return productId}
 
 async function fetchLabelForProducts(productIds, productHandles) {
     try {
