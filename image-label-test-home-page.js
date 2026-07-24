@@ -754,4 +754,11 @@ function updateLabelTextOnPage(data, cardMedia) {
     imageContainer.appendChild(outer);
 }
 
-mainFunctionLabels();
+const observer = new MutationObserver(() => {
+    mainFunctionLabels();
+});
+
+observer.observe(document.body, {
+    childList: true,
+    subtree: true
+});
