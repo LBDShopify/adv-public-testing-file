@@ -125,25 +125,32 @@ function containsOnlyOneProduct(node) {
 }
 
 function findProductRoot(link) {
+    const targetHandle = getHandleFromHref(link.href);
 
     let node = link;
     let candidate = null;
 
     while (node && node !== document.body) {
 
-        // Does this ancestor contain an image?
-        const hasImage =
-            node.querySelector("img, picture, video");
+        const hasMedia = node.querySelector("img, picture, video");
 
-        if (
-            hasImage &&
-            containsOnlyOneProduct(node)
-        ) {
-            candidate = node;
-        } else {
-            // Once another product appears,
-            // the previous candidate is our product root.
-            if (candidate) {
+        if (hasMedia) {
+            const links = node.querySelectorAll('a[href*="/products/"]');
+
+            let valid = true;
+
+            for (const a of links) {
+                const handle = getHandleFromHref(a.href);
+
+                if (handle && handle !== targetHandle) {
+                    valid = false;
+                    break;
+                }
+            }
+
+            if (valid) {
+                candidate = node;
+            } else if (candidate) {
                 break;
             }
         }
