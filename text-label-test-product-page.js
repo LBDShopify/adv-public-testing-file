@@ -1,22 +1,40 @@
-async function findProductIdFromMedia(media) {
-    // find product id
+function findProductIdFromMedia(media) {
+    if (!media) return null;
+
     let productId = null;
 
-    // Step A: find nearest [data-product-id]
-    let wrapper = media.closest("[data-product-id]");
+    // Step A: find first element with data-product-id (including media itself)
+    let wrapper = media.matches?.("[data-product-id]")
+        ? media
+        : media.querySelector("[data-product-id]");
+
     if (wrapper) {
         productId = wrapper.getAttribute("data-product-id");
     }
 
-    // Step B: if null, find [product-id]
+    // Step B: find first element with product-id attribute
     if (!productId) {
-        wrapper = media.closest("[product-id]");
+        wrapper = media.matches?.("[product-id]")
+            ? media
+            : media.querySelector("[product-id]");
+
         if (wrapper) {
             productId = wrapper.getAttribute("product-id");
         }
     }
 
-    // Step C: find anchor with id containing CardLink / StandardCardNoMediaLink and extract trailing digits
+    // Step C: hidden input name="product-id"
+    if (!productId) {
+        const input = media.querySelector(
+            'input[name="product-id"], input[name="product_id"]'
+        );
+
+        if (input) {
+            productId = input.value;
+        }
+    }
+
+    // Step D: extract from link id
     if (!productId && media) {
         const linkWithId = media.querySelector(
             'a[id*="StandardCardNoMediaLink"], a[id*="CardLink"], a[id*="NoMediaStandardLink"]'
@@ -36,7 +54,6 @@ async function findProductIdFromMedia(media) {
 
     return productId
 }
-
 
 async function fetchLabelDetailOnMainProductPage() {
     try {
