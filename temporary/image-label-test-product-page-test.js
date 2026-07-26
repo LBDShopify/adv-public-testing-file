@@ -1,3 +1,16 @@
+// label - product page - find image of product
+mainImageSelectors = [
+    "li .product-media",//Horizon
+    "li .product__media", //Dawn
+    ".product__main-photos .product-image-main", //Impulse
+    ".product-gallery .product-gallery--media",// Empire
+    ".product-gallery .product-gallery--image",// Empire backup
+    ".product__media.card.media.media--adapt_first",// Concept
+    ".product-gallery__media.snap-center",// Cocoon
+    ".swiper-container .swiper-slide",// Debut
+    ".product__media-list .product__media-item",// Focal, Quartz, Ivory
+]
+
 function findProductIdFromMedia(media) {
     if (!media) return null;
 
@@ -100,29 +113,19 @@ async function fetchLabelDetailOnMainProductPage() {
             return;
         }
 
-        const productContainer = findMainProductContainer();
-
-        const gallery = findGalleryContainer(productContainer);
-
-        if (!gallery) return;
-
-        const images = gallery.querySelectorAll("img");
-
-        console.log("fetchLabelDetailOnMainProductPage, images: ", images)
+        const imageContainers = getAllProductImageContainers()
 
         for (const label of productPageLabels) {
 
             if (label && label.type === "IMAGE" && label.iconUrl) {
-                for (const img of images) {
-                    const productMedia = img.parentElement
-                    renderLabelImageOnMainProductPage(label, productMedia)
+                for (const container of imageContainers) {
+                    renderLabelImageOnMainProductPage(label, container)
                 }
             }
 
             if (label && label.type === "TEXT" && label.content) {
-                for (const img of images) {
-                    const productMedia = img.parentElement
-                    renderLabelTextOnMainProductPage(label, productMedia);
+                for (const container of imageContainers) {
+                    renderLabelTextOnMainProductPage(label, container);
                 }
             }
 
@@ -133,139 +136,64 @@ async function fetchLabelDetailOnMainProductPage() {
     }
 }
 
+function getAllProductImageContainers() {
+    let selectorFound = null;
+
+    for (const sel of mainImageSelectors) {
+        const productMediaFound = document.querySelector(sel);
+        if (productMediaFound) {
+            selectorFound = sel;
+            break;
+        }
+    }
+
+    if (!selectorFound) {
+        console.warn("⚠️ No matching product media selector found.");
+        return [];
+    }
+
+    const productMedias = document.querySelectorAll(selectorFound);
+
+    if (productMedias.length === 0) {
+        console.warn("⚠️ No product media found for selector:", selectorFound);
+        return [];
+    }
+
+    const containers = [];
+
+    productMedias.forEach(productMedia => {
+        const container = productMedia.querySelector("img")?.parentElement;
+
+        if (container && !containers.includes(container)) {
+            containers.push(container);
+        }
+    });
+
+    return containers;
+}
+
 // 🔥 cache keyframes (add this OUTSIDE function, only once)
 const asfAnimationCacheTest = new Set();
 
-function findGalleryContainer(productContainer) {
-    if (!productContainer) return null;
-
-    let best = null;
-    let maxImages = 0;
-
-    const walker = document.createTreeWalker(
-        productContainer,
-        NodeFilter.SHOW_ELEMENT
-    );
-
-    while (walker.nextNode()) {
-
-        const el = walker.currentNode;
-
-        const imgs = el.querySelectorAll("img");
-
-        if (imgs.length > maxImages) {
-            maxImages = imgs.length;
-            best = el;
-        }
-    }
-    console.log("findGalleryContainer, container: ", best)
-    return best;
-}
-
-function findMainProductContainer() {
-
-    const form =
-        document.querySelector('form[action*="/cart/add"]') ||
-        document.querySelector("product-form");
-
-    if (!form) return null;
-
-    let node = form;
-
-    while (node && node !== document.body) {
-
-        const images = [...node.querySelectorAll("img")]
-            .filter(isRealProductImage);
-
-        // Found the first ancestor containing real product images
-        if (images.length) {
-            console.log("findMainProductContainer, node: ", node)
-            return node;
-        }
-
-        node = node.parentElement;
-    }
-
-    return null;
-}
-
-// function findMainProductContainer() {
-//     const form =
-//         document.querySelector('form[action*="/cart/add"]') ||
-//         document.querySelector("product-form");
-//
-//     if (!form) return null;
-//
-//     let node = form;
-//     let candidate = null;
-//
-//     while (node && node !== document.body) {
-//
-//         const images = [...node.querySelectorAll("img")]
-//             .filter(isRealProductImage);
-//
-//         if (images.length > 0) {
-//             candidate = node;
-//         }
-//
-//         node = node.parentElement;
-//     }
-//     console.log("findMainProductContainer, candidate: ", candidate)
-//     return candidate;
-// }
-
-function isRealProductImage(img) {
-    if (!(img instanceof HTMLImageElement)) {
-        return false;
-    }
-
-    // Ignore hidden images
-    if (img.offsetParent === null) {
-        return false;
-    }
-
-    // Rendered size
-    const rect = img.getBoundingClientRect();
-    console.log("isRealProductImage, getBoundingClientRect, rect width height: ", rect.width, rect.height)
-
-    if (rect.width < 80 || rect.height < 80) {
-        console.log("isRealProductImage, rect.width < 80 || rect.height < 80 return false")
-        return false;
-    }
-
-    console.log("isRealProductImage, getBoundingClientRect, img.complete: ", img.complete)
-    console.log("isRealProductImage, getBoundingClientRect, naturalWidth width height: ", rect.naturalWidth, rect.naturalHeight)
-
-    // Natural image size (after loaded)
-    return !(img.complete &&
-        (img.naturalWidth < 150 || img.naturalHeight < 150));
-
-}
-
-function renderLabelImageOnMainProductPage(data, productMedia) {
-    const container = productMedia.querySelector("img")?.parentElement;
-    if (!container) return;
-
-    const rect = container.getBoundingClientRect();
-    console.log("renderLabelTextOnMainProductPage, container add label image rect.width: ", rect.width);
-    console.log("renderLabelTextOnMainProductPage, container add label image rect.height: ", rect.height);
+function renderLabelImageOnMainProductPage(data, imgContainer) {
+    const rect = imgContainer.getBoundingClientRect();
     // Ignore small containers (icons, thumbnails, logos, etc.)
     if (rect.width < 150 || rect.height < 150) {
         return;
     }
 
-    container.style.position = "relative";
-    container.style.overflow = "visible";
+    imgContainer.style.position = "relative";
+    imgContainer.style.overflow = "visible";
 
     // 🚫 Prevent duplicate label
-    if (container.querySelector(`.asf-label-overlay[data-label-image-id="${data.id}"]`)) {
+    if (imgContainer.querySelector(`.asf-label-overlay[data-label-id="${data.id}"]`)) {
         return;
     }
 
     const labelImg = document.createElement("img");
     labelImg.src = data.iconUrl;
     labelImg.className = "asf-label-overlay";
-    labelImg.setAttribute("data-label-image-id", data.id);
+    labelImg.setAttribute("data-label-id", data.id);
 
     const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
     const labelWidth = isMobile ? data.widthMobile : data.width;
@@ -386,7 +314,7 @@ function renderLabelImageOnMainProductPage(data, productMedia) {
         const transformPrefix = labelImg.style.transform || "";
         const animationName = `asf_${animation}_${data.id}`;
 
-        if (!asfAnimationCacheTest.has(animationName)) {
+        if (!asfAnimationCache.has(animationName)) {
             const keyframes = document.createElement("style");
             keyframes.type = "text/css";
             let keyframeCSS = "";
@@ -476,7 +404,7 @@ function renderLabelImageOnMainProductPage(data, productMedia) {
             if (keyframeCSS) {
                 keyframes.innerHTML = keyframeCSS;
                 document.head.appendChild(keyframes);
-                asfAnimationCacheTest.add(animationName);
+                asfAnimationCache.add(animationName);
             }
         }
 
@@ -485,20 +413,20 @@ function renderLabelImageOnMainProductPage(data, productMedia) {
         });
     }
 
-    container.appendChild(labelImg);
+    imgContainer.appendChild(labelImg);
 }
 
 // 🔥 GLOBAL CACHE (add once outside)
 const asfTextAnimationCacheTest = new Set();
 const asfFontCacheTest = new Set();
 
-function renderLabelTextOnMainProductPage(data, productMedia) {
-    if (getComputedStyle(productMedia).position === "static") {
-        productMedia.style.position = "relative";
+function renderLabelTextOnMainProductPage(data, imgContainer) {
+    if (getComputedStyle(imgContainer).position === "static") {
+        imgContainer.style.position = "relative";
     }
 
     // 🚫 Prevent duplicate label
-    if (productMedia.querySelector(`.asf-label-text[data-label-text-id="${data.id}"]`)) {
+    if (imgContainer.querySelector(`.asf-label-text[data-label-id="${data.id}"]`)) {
         return;
     }
 
@@ -506,12 +434,10 @@ function renderLabelTextOnMainProductPage(data, productMedia) {
     const widthSVG = isMobile ? data.widthMobile : data.width;
     const heightSVG = isMobile ? data.heightMobile : data.height;
 
-    const productRect = productMedia.getBoundingClientRect();
+    const productRect = imgContainer.getBoundingClientRect();
     const imageWidth = productRect.width;
     const imageHeight = productRect.height;
 
-    console.log("renderLabelTextOnMainProductPage, container add label text imageWidth: ", imageWidth);
-    console.log("renderLabelTextOnMainProductPage, container add label text imageHeight: ", imageHeight);
     // Ignore small containers (icons, thumbnails, logos, etc.)
     if (imageWidth < 150 || imageHeight < 150) {
         return;
@@ -580,13 +506,13 @@ function renderLabelTextOnMainProductPage(data, productMedia) {
         const fontSlug = fontName.replace(/ /g, "+");
         const fontUrl = `https://fonts.googleapis.com/css2?family=${fontSlug}&display=swap`;
 
-        if (!asfFontCacheTest.has(fontUrl)) {
+        if (!asfFontCache.has(fontUrl)) {
             const link = document.createElement("link");
             link.href = fontUrl;
             link.rel = "stylesheet";
             document.head.appendChild(link);
 
-            asfFontCacheTest.add(fontUrl);
+            asfFontCache.add(fontUrl);
         }
     }
 
@@ -594,7 +520,12 @@ function renderLabelTextOnMainProductPage(data, productMedia) {
         loadGoogleFontIfNeeded(data.font);
 
         const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
-        const fontSizeForText = isMobile ? data.fontSizeMobile : data.fontSize;
+
+        const fontSizeForText = isMobile
+            ? (data.fontSizeMobile != null && data.fontSizeMobile !== ""
+                ? data.fontSizeMobile
+                : data.fontSize / 2)
+            : data.fontSize;
 
         const text = document.createElementNS(svgNS, "text");
         text.setAttribute("x", x);
@@ -685,7 +616,7 @@ function renderLabelTextOnMainProductPage(data, productMedia) {
 
     const outer = document.createElement("div");
     outer.className = "asf-label-text";
-    outer.setAttribute("data-label-text-id", data.id);
+    outer.setAttribute("data-label-id", data.id);
 
     outer.style.position = "absolute";
     outer.style.top = `${offsetTop}px`;
@@ -703,7 +634,7 @@ function renderLabelTextOnMainProductPage(data, productMedia) {
         const opacity = data.opacity / 100;
         const animationName = `asf_text_${data.animationType}_${data.id}`;
 
-        if (!asfTextAnimationCacheTest.has(animationName)) {
+        if (!asfTextAnimationCache.has(animationName)) {
             let keyframes = "";
 
             switch (data.animationType) {
@@ -757,7 +688,7 @@ function renderLabelTextOnMainProductPage(data, productMedia) {
                 const styleSheet = document.createElement("style");
                 styleSheet.innerHTML = keyframes;
                 document.head.appendChild(styleSheet);
-                asfTextAnimationCacheTest.add(animationName);
+                asfTextAnimationCache.add(animationName);
             }
         }
 
@@ -765,7 +696,7 @@ function renderLabelTextOnMainProductPage(data, productMedia) {
     }
 
     outer.appendChild(container);
-    productMedia.appendChild(outer);
+    imgContainer.appendChild(outer);
 }
 
 fetchLabelDetailOnMainProductPage();
