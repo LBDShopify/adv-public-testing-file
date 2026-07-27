@@ -281,12 +281,12 @@ function updateLabelImageOnPage(data, cardMedia) {
     const img = cardMedia.querySelector('img');
     const imageContainer = img ? img.parentElement : cardMedia;
 
-    // const rect = imageContainer.getBoundingClientRect();
-    // console.log("imageContainer, width: ", rect.width, " , height: ", rect.height)
-    // // Ignore small containers (icons, thumbnails, logos, etc.)
-    // if (rect.width < 150 || rect.height < 150) {
-    //     return;
-    // }
+    const rect = imageContainer.getBoundingClientRect();
+    console.log("imageContainer, width: ", rect.width, " , height: ", rect.height)
+    // Ignore small containers (icons, thumbnails, logos, etc.)
+    if (rect.width < 150 || rect.height < 150) {
+        return;
+    }
 
     // ✅ prevent duplicate render
     if (imageContainer.querySelector(`[data-label-image-id="${data.id}"]`)) {
@@ -522,6 +522,13 @@ function updateLabelTextOnPage(data, cardMedia) {
 
     const img = cardMedia.querySelector('img');
     const imageContainer = img ? img.parentElement : cardMedia;
+
+    const rect = imageContainer.getBoundingClientRect();
+    console.log("imageContainer, width: ", rect.width, " , height: ", rect.height)
+    // Ignore small containers (icons, thumbnails, logos, etc.)
+    if (rect.width < 150 || rect.height < 150) {
+        return;
+    }
 
     // ✅ prevent duplicate render
     if (imageContainer.querySelector(`[data-label-text-id="${data.id}"]`)) {
