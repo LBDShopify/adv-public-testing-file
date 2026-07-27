@@ -1,65 +1,39 @@
 // label - product page - find image of product
 mainImageSelectors = [
-    "li .product-media222",//Horizon
-    "li .product__media333"
+    "li .product-media",//Horizon
+    "li .product__media", //Dawn
+    ".product__main-photos .product-image-main", //Impulse
+    ".product-gallery .product-gallery--media",// Empire
+    ".product-gallery .product-gallery--image",// Empire backup
+    ".product__media.card.media.media--adapt_first",// Concept
+    ".product-gallery__media.snap-center",// Cocoon
+    ".swiper-container .swiper-slide",// Debut
+    ".product__media-list .product__media-item",// Focal, Quartz, Ivory
+    ".grid__item .photos__item",
 ]
 
-function findProductIdFromMedia(media) {
-    if (!media) return null;
+// ignore if image inside description, header, p...
+const ignoreImageAncestorSelectors = [
+    // Product description
+    ".rte",
+    "rte-formatter",
+    ".product-description",
+    ".description",
+    ".product__description",
+    ".accordion",
+    ".tabs",
 
-    let productId = null;
+    // Header
+    ".logo",
+    ".site-header",
+    ".header",
+    ".announcement-bar",
 
-    // Step A: find first element with data-product-id (including media itself)
-    let wrapper = media.matches?.("[data-product-id]")
-        ? media
-        : media.querySelector("[data-product-id]");
-
-    if (wrapper) {
-        productId = wrapper.getAttribute("data-product-id");
-    }
-
-    // Step B: find first element with product-id attribute
-    if (!productId) {
-        wrapper = media.matches?.("[product-id]")
-            ? media
-            : media.querySelector("[product-id]");
-
-        if (wrapper) {
-            productId = wrapper.getAttribute("product-id");
-        }
-    }
-
-    // Step C: hidden input name="product-id"
-    if (!productId) {
-        const input = media.querySelector(
-            'input[name="product-id"], input[name="product_id"]'
-        );
-
-        if (input) {
-            productId = input.value;
-        }
-    }
-
-    // Step D: extract from link id
-    if (!productId && media) {
-        const linkWithId = media.querySelector(
-            'a[id*="StandardCardNoMediaLink"], a[id*="CardLink"], a[id*="NoMediaStandardLink"]'
-        );
-        if (linkWithId && linkWithId.id) {
-            const match = linkWithId.id.match(/(\d+)$/);
-            if (match) {
-                productId = match[1];
-            }
-        }
-    }
-
-    // if null, undefined, empty string, or not a number -> return
-    if (productId == null || isNaN(Number(productId))) {
-        return null;
-    }
-
-    return productId
-}
+    // Other content
+    "article",
+    "footer",
+    "header"
+];
 
 async function fetchLabelDetailOnMainProductPage() {
     try {
@@ -129,6 +103,55 @@ async function fetchLabelDetailOnMainProductPage() {
     }
 }
 
+
+function getAllProductImageContainers() {
+    // ---------------------------------------
+    // Priority 1: Find the first matching selector
+    // ---------------------------------------
+
+    let productMedias = null;
+
+    for (const selector of mainImageSelectors) {
+
+        const medias = document.querySelectorAll(selector);
+
+        if (medias.length > 0) {
+            productMedias = medias;
+            break; // Only use the first matching selector
+        }
+    }
+
+    if (productMedias) {
+        console.log("getAllProductImageContainers return Priority 1, productMedias: ", productMedias);
+        return [...productMedias]
+            .map(media => media.querySelector("img")?.parentElement)
+            .filter(Boolean);
+    }
+
+    // ---------------------------------------
+    // Priority 2: Generic detection
+    // ---------------------------------------
+
+    const firstImage = findFirstAcceptedProductImage();
+    console.log("getAllProductImageContainers firstImage: ", firstImage);
+
+    if (!firstImage) {
+        console.warn("⚠️ Cannot find first accepted product image.");
+        return [];
+    }
+
+    const galleryRoot = findGalleryRoot(firstImage);
+    console.log("getAllProductImageContainers galleryRoot: ", galleryRoot);
+
+    if (!galleryRoot) {
+        console.warn("⚠️ Cannot find gallery root.");
+        return [];
+    }
+
+    console.log("getAllProductImageContainers return getMediaContainersFromRoot Priority 2");
+    return getMediaContainersFromRoot(galleryRoot);
+}
+
 function findFirstAcceptedProductImage() {
 
     const form =
@@ -146,7 +169,6 @@ function findFirstAcceptedProductImage() {
         const image = findFirstAcceptedImage(current);
 
         if (image) {
-
             return image;
         }
 
@@ -168,6 +190,10 @@ function findFirstAcceptedImage(root) {
                     return NodeFilter.FILTER_SKIP;
                 }
 
+                if (!isShopifyProductImageUrl(node)) {
+                    return NodeFilter.FILTER_SKIP;
+                }
+
                 return isPossibleProductImage(node)
                     ? NodeFilter.FILTER_ACCEPT
                     : NodeFilter.FILTER_SKIP;
@@ -178,108 +204,54 @@ function findFirstAcceptedImage(root) {
     return walker.nextNode();
 }
 
+function isShopifyProductImageUrl(img) {
+
+    if (!img) {
+        return false;
+    }
+
+    // Prefer currentSrc because <picture> may choose a different source.
+    const url = img.currentSrc || img.src || "";
+
+    return url.includes("/cdn/shop/files/") ||
+        url.includes("/cdn.shopify.com/s/files/");
+}
+
 function findGalleryRoot(firstImage) {
+
+    let bestRoot = null;
+    let bestScore = 0;
 
     let node = firstImage.parentElement;
 
     while (node && node !== document.body) {
 
-        const acceptedImages = Array
-            .from(node.querySelectorAll("img"))
-            .filter(isPossibleProductImage);
+        const directChildren = [...node.children];
 
-        // Even if there is only one product image,
-        // this ancestor is still valid.
-        if (acceptedImages.includes(firstImage)) {
+        let mediaChildren = 0;
 
-            // Prefer the first ancestor that contains
-            // more than one accepted image.
-            if (acceptedImages.length > 1) {
-                return node;
+        for (const child of directChildren) {
+
+            const acceptedImages = [...child.querySelectorAll("img")]
+                .filter(isPossibleProductImage);
+
+            if (acceptedImages.length === 1) {
+                mediaChildren++;
             }
+        }
 
-            // Otherwise remember it as fallback.
-            if (!node.__singleImageCandidate) {
-                node.__singleImageCandidate = true;
-            }
+        const score = mediaChildren;
+
+        if (score > bestScore) {
+            bestScore = score;
+            bestRoot = node;
         }
 
         node = node.parentElement;
     }
 
-    // Walk again to return the remembered single-image ancestor.
-    node = firstImage.parentElement;
-
-    while (node && node !== document.body) {
-
-        if (node.__singleImageCandidate) {
-            delete node.__singleImageCandidate;
-            return node;
-        }
-
-        node = node.parentElement;
-    }
-
-    return null;
-}
-
-function isPossibleProductImage(img) {
-
-    if (!img)
-        return false;
-
-    //------------------------------------
-    // Ignore hidden
-    //------------------------------------
-
-    const rect = img.getBoundingClientRect();
-
-    if (rect.width < 150 || rect.height < 150)
-        return false;
-
-    //------------------------------------
-    // Ignore description
-    //------------------------------------
-
-    if (
-        img.closest(".rte") ||
-        img.closest(".product-description") ||
-        img.closest(".description") ||
-        img.closest(".accordion") ||
-        img.closest(".tabs") ||
-        img.closest("article") ||
-        img.closest("footer") ||
-        img.closest("header")
-    ) {
-        return false;
-    }
-
-    //------------------------------------
-    // Ignore logo
-    //------------------------------------
-
-    if (
-        img.closest(".logo") ||
-        img.closest(".site-header") ||
-        img.closest(".header") ||
-        img.closest(".announcement-bar")
-    ) {
-        return false;
-    }
-
-    //------------------------------------
-    // Ignore lazy placeholder
-    //------------------------------------
-
-    if (
-        img.src.startsWith("data:") ||
-        img.src.includes("placeholder")
-    ) {
-        return false;
-    }
-
-    return true;
-
+    console.log("findGalleryRoot, bestRoot: ", bestRoot)
+    return bestRoot;
 }
 
 function getMediaContainersFromRoot(galleryRoot) {
@@ -312,39 +284,31 @@ function getMediaContainersFromRoot(galleryRoot) {
         }
     }
 
+    console.log("getAllProductImageContainers result: ", result);
     return result;
 }
 
-function getAllProductImageContainers() {
-    // Priority 1: known selectors
-    for (const selector of mainImageSelectors) {
+function isPossibleProductImage(img) {
+    if (!img)
+        return false;
 
-        const medias = document.querySelectorAll(selector);
+    //------------------------------------
+    // Ignore hidden
+    //------------------------------------
 
-        if (medias.length) {
+    const rect = img.getBoundingClientRect();
 
-            return [...medias]
-                .map(m => m.querySelector("img")?.parentElement)
-                .filter(Boolean);
-        }
+    if (rect.width < 150 || rect.height < 150)
+        return false;
+
+    //------------------------------------
+    // Ignore description
+    //------------------------------------
+    if (ignoreImageAncestorSelectors.some(selector => img.closest(selector))) {
+        return false;
     }
 
-    // Priority 2: generic detection
-    const firstImage = findFirstAcceptedProductImage();
-
-    if (!firstImage) {
-        console.warn("Cannot find first product image.");
-        return [];
-    }
-
-    const root = findGalleryRoot(firstImage);
-
-    if (!root) {
-        console.warn("Cannot find gallery root.");
-        return [];
-    }
-
-    return getMediaContainersFromRoot(root);
+    return true;
 }
 
 // 🔥 cache keyframes (add this OUTSIDE function, only once)
