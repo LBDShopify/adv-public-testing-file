@@ -126,32 +126,47 @@ function containsOnlyOneProduct(node) {
 
 function findProductRoot(link) {
 
-    let node = link;
+    // If the link wraps an image, start from the image.
+    let startNode = link.querySelector("img, picture, video") || link;
+
+    let node = startNode;
     let candidate = null;
 
     while (node && node !== document.body) {
 
-        // Does this ancestor contain an image?
-        const hasImage =
-            node.querySelector("img, picture, video");
+        const hasImage = node.querySelector("img, picture, video");
 
-        if (
-            hasImage &&
-            containsOnlyOneProduct(node)
-        ) {
+        if (hasImage && containsOnlyOneProduct(node)) {
             candidate = node;
-        } else {
-            // Once another product appears,
-            // the previous candidate is our product root.
-            if (candidate) {
-                break;
-            }
+        } else if (candidate) {
+            break;
         }
 
         node = node.parentElement;
     }
 
     return candidate;
+}
+
+function isVisible(element) {
+
+    if (!element || !element.isConnected) {
+        return false;
+    }
+
+    const style = getComputedStyle(element);
+
+    if (
+        style.display === "none" ||
+        style.visibility === "hidden" ||
+        style.opacity === "0"
+    ) {
+        return false;
+    }
+
+    const rect = element.getBoundingClientRect();
+
+    return rect.width > 0 && rect.height > 0;
 }
 
 function findAllProductRoots() {
@@ -163,6 +178,11 @@ function findAllProductRoots() {
     );
 
     for (const link of links) {
+
+
+        if (!isVisible(link)) {
+            continue;
+        }
 
         const root = findProductRoot(link);
 
@@ -277,6 +297,9 @@ function ensureAnimationStyle(animationName, keyframeCSS) {
 }
 
 function updateLabelImageOnPage(data, cardMedia) {
+    console.log("updateLabelImageOnPage, data: ", data)
+    console.log("updateLabelImageOnPage, cardMedia: ", cardMedia)
+
     if (!data?.id || !data?.iconUrl || !cardMedia) return;
 
     if (!Array.isArray(data.showOnPages) || !data.showOnPages.includes("HOME_PAGE")) return;
@@ -289,6 +312,7 @@ function updateLabelImageOnPage(data, cardMedia) {
         return;
     }
 
+    console.log("updateLabelImageOnPage render labelImg start")
     const labelImg = document.createElement("img");
     labelImg.src = data.iconUrl;
     labelImg.alt = data.name || "Label";
@@ -500,6 +524,7 @@ function updateLabelImageOnPage(data, cardMedia) {
         imageContainer.style.position = "relative";
     }
 
+    console.log("updateLabelImageOnPage, imageContainer.appendChild(labelImg)")
     imageContainer.appendChild(labelImg);
 }
 
