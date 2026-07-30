@@ -57,7 +57,7 @@ function findProductIdFromMedia(media) {
 
 async function fetchLabelDetailOnMainProductPage() {
     try {
-        const response = await fetch(`http://localhost:8080/api/v1/testing/label/app-embed/text/get-active-by-product`, {
+        const response = await fetch(`https://adv-prod-be.lgroupcommerce.com/api/v1/testing/label/app-embed/text/get-active-by-product`, {
             method: "POST", // Use POST because there's a request body
             headers: {
                 "Authorization": `Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI5MDgwNzQwMjc3MCIsInJvbGVzIjpbIlVTRVIiXSwidXNlcmlkIjoxLCJpYXQiOjE3ODE0OTY5MzJ9.sREm2SXqvm0_TmbexjR1Iddeh8OsagVe_9AlghHpfmw`,
@@ -775,7 +775,7 @@ async function fetchLabelForProducts(productIds, productHandles) {
     try {
 
         const res = await fetch(
-            `http://localhost:8080/api/v1/testing/label/app-embed/text/product-ids-or-handles`,
+            `https://adv-prod-be.lgroupcommerce.com/api/v1/testing/label/app-embed/text/product-ids-or-handles`,
             {
                 method: "POST",
                 headers: {

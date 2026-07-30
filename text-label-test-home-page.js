@@ -59,7 +59,7 @@ async function fetchLabelForProducts(productIds, productHandles) {
     try {
 
         const res = await fetch(
-            `http://localhost:8080/api/v1/testing/label/app-embed/text/product-ids-or-handles`,
+            `https://adv-prod-be.lgroupcommerce.com/api/v1/testing/label/app-embed/text/product-ids-or-handles`,
             {
                 method: "POST",
                 headers: {
