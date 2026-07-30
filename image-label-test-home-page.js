@@ -57,11 +57,6 @@ function findProductIdFromMedia(media) {
 
 async function fetchLabelForProducts(productIds, productHandles) {
     try {
-        const body = JSON.stringify({
-            productIds,
-            productHandles,
-            showOnPage: "HOME_PAGE"
-        })
 
         const res = await fetch(
             `http://localhost:8080/api/v1/testing/label/app-embed/image/product-ids-or-handles`,
@@ -71,10 +66,13 @@ async function fetchLabelForProducts(productIds, productHandles) {
                     "Authorization": `Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI5MDgwNzQwMjc3MCIsInJvbGVzIjpbIlVTRVIiXSwidXNlcmlkIjoxLCJpYXQiOjE3ODE0OTY5MzJ9.sREm2SXqvm0_TmbexjR1Iddeh8OsagVe_9AlghHpfmw`,
                     "Content-Type": "application/json"
                 },
-                body: body
+                body: JSON.stringify({
+                    productIds,
+                    productHandles,
+                    showOnPage: "HOME_PAGE"
+                })
             }
         );
-        console.log("fetchLabelForProducts, body: ", body)
 
         if (!res.ok) {
             throw new Error("Fetch error");
@@ -179,14 +177,12 @@ function findAllProductRoots() {
         'a[href*="/products/"]:not([href*="#"])'
     );
 
-    console.log("findAllProductRoots, links: ", links);
-
     for (const link of links) {
 
 
-        // if (!isVisible(link)) {
-        //     continue;
-        // }
+        if (!isVisible(link)) {
+            continue;
+        }
 
         const root = findProductRoot(link);
 
@@ -242,25 +238,23 @@ async function mainFunctionLabels() {
     );
 
     for (const item of rootMap) {
-        console.log("mainFunctionLabels, item root: ", item.root)
 
         let labels = [];
 
-        if (item.productId &&
-            labelMap[item.productId]) {
-            console.log("mainFunctionLabels, label map item.productId")
+        if (item.productId && labelMap[item.productId]) {
+
             labels = labelMap[item.productId];
+
         } else if (
             item.handle &&
             labelMap[item.handle]
         ) {
-            console.log("mainFunctionLabels, label map item.handle")
+
             labels = labelMap[item.handle];
+
         }
-        console.log("mainFunctionLabels, labels: ", labels)
 
         if (!labels.length) {
-            console.log("mainFunctionLabels, !labels.length continue - return ")
             continue;
         }
 
@@ -269,15 +263,12 @@ async function mainFunctionLabels() {
             label.showOnPages.includes("HOME_PAGE")
         );
 
-        console.log("mainFunctionLabels, pageLabels: ", pageLabels)
-
         for (const label of pageLabels) {
 
             if (
                 label.type === "IMAGE" &&
                 label.iconUrl
             ) {
-                console.log("mainFunctionLabels, updateLabelImageOnPage item root: ", item.root)
                 updateLabelImageOnPage(label, item.root);
             }
 
@@ -306,7 +297,7 @@ function ensureAnimationStyle(animationName, keyframeCSS) {
 }
 
 function updateLabelImageOnPage(data, cardMedia) {
-    // console.log("updateLabelImageOnPage, data: ", data)
+    console.log("updateLabelImageOnPage, data: ", data)
     console.log("updateLabelImageOnPage, cardMedia: ", cardMedia)
 
     if (!data?.id || !data?.iconUrl || !cardMedia) return;
