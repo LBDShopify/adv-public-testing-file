@@ -121,6 +121,7 @@ function containsOnlyOneProduct(node) {
             handles.add(handle);
         }
     }
+
     return handles.size === 1;
 }
 
@@ -175,10 +176,8 @@ function findAllProductRoots() {
 }
 
 async function mainFunctionLabels() {
-    console.log("mainFunctionLabels, start")
 
     const productRoots = findAllProductRoots();
-    console.log("mainFunctionLabels, productRoots: ", productRoots)
 
     if (!productRoots.length) return;
 
@@ -204,9 +203,6 @@ async function mainFunctionLabels() {
             productHandles.push(handle);
         }
     }
-
-    console.log("mainFunctionLabels, productIds: ", productIds)
-    console.log("mainFunctionLabels, productHandles: ", productHandles)
 
     const uniqueIds = [...new Set(productIds)];
 
@@ -607,7 +603,12 @@ function updateLabelTextOnPage(data, cardMedia) {
         loadGoogleFontIfNeeded(data.font);
 
         const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
-        const fontSizeForText = isMobile ? data.fontSizeMobile : data.fontSize;
+
+        const fontSizeForText = isMobile
+            ? (data.fontSizeMobile != null && data.fontSizeMobile !== ""
+                ? data.fontSizeMobile
+                : data.fontSize / 2)
+            : data.fontSize;
 
         const text = document.createElementNS(svgNS, "text");
         text.setAttribute("x", x);
