@@ -1,59 +1,41 @@
-function findProductIdFromMedia(media) {
-    if (!media) return null;
+//start main image
 
-    let productId = null;
+// label - product page - find image of product
+mainImageSelectors = [
+    "li .product-media",//Horizon
+    "li .product__media", //Dawn
+    ".product__main-photos .product-image-main", //Impulse
+    ".product-gallery .product-gallery--media",// Empire
+    ".product-gallery .product-gallery--image",// Empire backup
+    ".product__media.card.media.media--adapt_first",// Concept
+    ".product-gallery__media.snap-center",// Cocoon
+    ".swiper-container .swiper-slide",// Debut
+    ".product__media-list .product__media-item",// Focal, Quartz, Ivory
+    ".grid__item .photos__item",
+]
 
-    // Step A: find first element with data-product-id (including media itself)
-    let wrapper = media.matches?.("[data-product-id]")
-        ? media
-        : media.querySelector("[data-product-id]");
+// ignore if image inside description, header, p...
+const ignoreImageAncestorSelectors = [
+    // Product description
+    ".rte",
+    "rte-formatter",
+    ".product-description",
+    ".description",
+    ".product__description",
+    ".accordion",
+    ".tabs",
 
-    if (wrapper) {
-        productId = wrapper.getAttribute("data-product-id");
-    }
+    // Header
+    ".logo",
+    ".site-header",
+    ".header",
+    ".announcement-bar",
 
-    // Step B: find first element with product-id attribute
-    if (!productId) {
-        wrapper = media.matches?.("[product-id]")
-            ? media
-            : media.querySelector("[product-id]");
-
-        if (wrapper) {
-            productId = wrapper.getAttribute("product-id");
-        }
-    }
-
-    // Step C: hidden input name="product-id"
-    if (!productId) {
-        const input = media.querySelector(
-            'input[name="product-id"], input[name="product_id"]'
-        );
-
-        if (input) {
-            productId = input.value;
-        }
-    }
-
-    // Step D: extract from link id
-    if (!productId && media) {
-        const linkWithId = media.querySelector(
-            'a[id*="StandardCardNoMediaLink"], a[id*="CardLink"], a[id*="NoMediaStandardLink"]'
-        );
-        if (linkWithId && linkWithId.id) {
-            const match = linkWithId.id.match(/(\d+)$/);
-            if (match) {
-                productId = match[1];
-            }
-        }
-    }
-
-    // if null, undefined, empty string, or not a number -> return
-    if (productId == null || isNaN(Number(productId))) {
-        return null;
-    }
-
-    return productId
-}
+    // Other content
+    "article",
+    "footer",
+    "header"
+];
 
 async function fetchLabelDetailOnMainProductPage() {
     try {
@@ -100,29 +82,19 @@ async function fetchLabelDetailOnMainProductPage() {
             return;
         }
 
-        const productContainer = findMainProductContainer();
-
-        const gallery = findGalleryContainer(productContainer);
-
-        if (!gallery) return;
-
-        const images = gallery.querySelectorAll("img");
-
-        console.log("fetchLabelDetailOnMainProductPage, images: ", images)
+        const imageContainers = getAllProductImageContainers()
 
         for (const label of productPageLabels) {
 
             if (label && label.type === "IMAGE" && label.iconUrl) {
-                for (const img of images) {
-                    const productMedia = img.parentElement
-                    renderLabelImageOnMainProductPage(label, productMedia)
+                for (const container of imageContainers) {
+                    renderLabelImageOnMainProductPage(label, container)
                 }
             }
 
             if (label && label.type === "TEXT" && label.content) {
-                for (const img of images) {
-                    const productMedia = img.parentElement
-                    renderLabelTextOnMainProductPage(label, productMedia);
+                for (const container of imageContainers) {
+                    renderLabelTextOnMainProductPage(label, container);
                 }
             }
 
@@ -133,139 +105,230 @@ async function fetchLabelDetailOnMainProductPage() {
     }
 }
 
-// 🔥 cache keyframes (add this OUTSIDE function, only once)
-const asfAnimationCacheTest = new Set();
 
-function findGalleryContainer(productContainer) {
-    if (!productContainer) return null;
+function getAllProductImageContainers() {
+    // ---------------------------------------
+    // Priority 1: Find the first matching selector
+    // ---------------------------------------
 
-    let best = null;
-    let maxImages = 0;
+    let productMedias = null;
 
-    const walker = document.createTreeWalker(
-        productContainer,
-        NodeFilter.SHOW_ELEMENT
-    );
+    for (const selector of mainImageSelectors) {
 
-    while (walker.nextNode()) {
+        const medias = document.querySelectorAll(selector);
 
-        const el = walker.currentNode;
-
-        const imgs = el.querySelectorAll("img");
-
-        if (imgs.length > maxImages) {
-            maxImages = imgs.length;
-            best = el;
+        if (medias.length > 0) {
+            productMedias = medias;
+            break; // Only use the first matching selector
         }
     }
-    console.log("findGalleryContainer, container: ", best)
-    return best;
+
+    if (productMedias) {
+        return [...productMedias]
+            .map(media => media.querySelector("img")?.parentElement)
+            .filter(Boolean);
+    }
+
+    // ---------------------------------------
+    // Priority 2: Generic detection
+    // ---------------------------------------
+
+    const firstImage = findFirstAcceptedProductImage();
+
+    if (!firstImage) {
+        console.warn("⚠️ Cannot find first accepted product image.");
+        return [];
+    }
+
+    const galleryRoot = findGalleryRoot(firstImage);
+
+    if (!galleryRoot) {
+        console.warn("⚠️ Cannot find gallery root.");
+        return [];
+    }
+
+    return getMediaContainersFromRoot(galleryRoot);
 }
 
-function findMainProductContainer() {
+function findFirstAcceptedProductImage() {
 
     const form =
         document.querySelector('form[action*="/cart/add"]') ||
         document.querySelector("product-form");
 
-    if (!form) return null;
+    if (!form) {
+        return null;
+    }
 
-    let node = form;
+    let current = form;
 
-    while (node && node !== document.body) {
+    while (current && current !== document.body) {
 
-        const images = [...node.querySelectorAll("img")]
-            .filter(isRealProductImage);
+        const image = findFirstAcceptedImage(current);
 
-        // Found the first ancestor containing real product images
-        if (images.length) {
-            console.log("findMainProductContainer, node: ", node)
-            return node;
+        if (image) {
+            return image;
         }
 
-        node = node.parentElement;
+        current = current.parentElement;
     }
 
     return null;
 }
 
-// function findMainProductContainer() {
-//     const form =
-//         document.querySelector('form[action*="/cart/add"]') ||
-//         document.querySelector("product-form");
-//
-//     if (!form) return null;
-//
-//     let node = form;
-//     let candidate = null;
-//
-//     while (node && node !== document.body) {
-//
-//         const images = [...node.querySelectorAll("img")]
-//             .filter(isRealProductImage);
-//
-//         if (images.length > 0) {
-//             candidate = node;
-//         }
-//
-//         node = node.parentElement;
-//     }
-//     console.log("findMainProductContainer, candidate: ", candidate)
-//     return candidate;
-// }
+function findFirstAcceptedImage(root) {
 
-function isRealProductImage(img) {
-    if (!(img instanceof HTMLImageElement)) {
-        return false;
-    }
+    const walker = document.createTreeWalker(
+        root,
+        NodeFilter.SHOW_ELEMENT,
+        {
+            acceptNode(node) {
 
-    // Ignore hidden images
-    if (img.offsetParent === null) {
-        return false;
-    }
+                if (node.tagName !== "IMG") {
+                    return NodeFilter.FILTER_SKIP;
+                }
 
-    // Rendered size
-    const rect = img.getBoundingClientRect();
-    console.log("isRealProductImage, getBoundingClientRect, rect width height: ", rect.width, rect.height)
+                if (!isShopifyProductImageUrl(node)) {
+                    return NodeFilter.FILTER_SKIP;
+                }
 
-    if (rect.width < 80 || rect.height < 80) {
-        console.log("isRealProductImage, rect.width < 80 || rect.height < 80 return false")
-        return false;
-    }
+                return isPossibleProductImage(node)
+                    ? NodeFilter.FILTER_ACCEPT
+                    : NodeFilter.FILTER_SKIP;
+            }
+        }
+    );
 
-    console.log("isRealProductImage, getBoundingClientRect, img.complete: ", img.complete)
-    console.log("isRealProductImage, getBoundingClientRect, naturalWidth width height: ", rect.naturalWidth, rect.naturalHeight)
-
-    // Natural image size (after loaded)
-    return !(img.complete &&
-        (img.naturalWidth < 150 || img.naturalHeight < 150));
-
+    return walker.nextNode();
 }
 
-function renderLabelImageOnMainProductPage(data, productMedia) {
-    const container = productMedia.querySelector("img")?.parentElement;
-    if (!container) return;
+function isShopifyProductImageUrl(img) {
 
-    const rect = container.getBoundingClientRect();
-    console.log("renderLabelTextOnMainProductPage, container add label image rect.width: ", rect.width);
-    console.log("renderLabelTextOnMainProductPage, container add label image rect.height: ", rect.height);
+    if (!img) {
+        return false;
+    }
+
+    // Prefer currentSrc because <picture> may choose a different source.
+    const url = img.currentSrc || img.src || "";
+
+    return url.includes("/cdn/shop/files/") ||
+        url.includes("/cdn.shopify.com/s/files/");
+}
+
+function findGalleryRoot(firstImage) {
+
+    let bestRoot = null;
+    let bestScore = 0;
+
+    let node = firstImage.parentElement;
+
+    while (node && node !== document.body) {
+
+        const directChildren = [...node.children];
+
+        let mediaChildren = 0;
+
+        for (const child of directChildren) {
+
+            const acceptedImages = [...child.querySelectorAll("img")]
+                .filter(isPossibleProductImage);
+
+            if (acceptedImages.length === 1) {
+                mediaChildren++;
+            }
+        }
+
+        const score = mediaChildren;
+
+        if (score > bestScore) {
+            bestScore = score;
+            bestRoot = node;
+        }
+
+        node = node.parentElement;
+    }
+
+    return bestRoot;
+}
+
+function getMediaContainersFromRoot(galleryRoot) {
+
+    const result = [];
+
+    const images = [...galleryRoot.querySelectorAll("img")]
+        .filter(isPossibleProductImage);
+
+    for (const img of images) {
+
+        // climb until this node contains ONLY this image
+        let media = img.parentElement;
+
+        while (media && media !== galleryRoot) {
+
+            const acceptedImages = [...media.querySelectorAll("img")]
+                .filter(isPossibleProductImage);
+
+            if (acceptedImages.length === 1 &&
+                acceptedImages[0] === img) {
+                break;
+            }
+
+            media = media.parentElement;
+        }
+
+        if (media && !result.includes(media)) {
+            result.push(media);
+        }
+    }
+
+    return result;
+}
+
+function isPossibleProductImage(img) {
+    if (!img)
+        return false;
+
+    //------------------------------------
+    // Ignore hidden
+    //------------------------------------
+
+    const rect = img.getBoundingClientRect();
+
+    if (rect.width < 150 || rect.height < 150)
+        return false;
+
+    //------------------------------------
+    // Ignore description
+    //------------------------------------
+    if (ignoreImageAncestorSelectors.some(selector => img.closest(selector))) {
+        return false;
+    }
+
+    return true;
+}
+
+// 🔥 cache keyframes (add this OUTSIDE function, only once)
+const asfAnimationCacheTest = new Set();
+
+function renderLabelImageOnMainProductPage(data, imgContainer) {
+    const rect = imgContainer.getBoundingClientRect();
     // Ignore small containers (icons, thumbnails, logos, etc.)
     if (rect.width < 150 || rect.height < 150) {
         return;
     }
 
-    container.style.position = "relative";
-    container.style.overflow = "visible";
+    imgContainer.style.position = "relative";
+    imgContainer.style.overflow = "visible";
 
     // 🚫 Prevent duplicate label
-    if (container.querySelector(`.asf-label-overlay[data-label-image-id="${data.id}"]`)) {
+    if (imgContainer.querySelector(`.asf-label-overlay[data-label-id="${data.id}"]`)) {
         return;
     }
 
     const labelImg = document.createElement("img");
     labelImg.src = data.iconUrl;
     labelImg.className = "asf-label-overlay";
-    labelImg.setAttribute("data-label-image-id", data.id);
+    labelImg.setAttribute("data-label-id", data.id);
 
     const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
     const labelWidth = isMobile ? data.widthMobile : data.width;
@@ -386,7 +449,7 @@ function renderLabelImageOnMainProductPage(data, productMedia) {
         const transformPrefix = labelImg.style.transform || "";
         const animationName = `asf_${animation}_${data.id}`;
 
-        if (!asfAnimationCacheTest.has(animationName)) {
+        if (!asfAnimationCache.has(animationName)) {
             const keyframes = document.createElement("style");
             keyframes.type = "text/css";
             let keyframeCSS = "";
@@ -476,7 +539,7 @@ function renderLabelImageOnMainProductPage(data, productMedia) {
             if (keyframeCSS) {
                 keyframes.innerHTML = keyframeCSS;
                 document.head.appendChild(keyframes);
-                asfAnimationCacheTest.add(animationName);
+                asfAnimationCache.add(animationName);
             }
         }
 
@@ -485,20 +548,16 @@ function renderLabelImageOnMainProductPage(data, productMedia) {
         });
     }
 
-    container.appendChild(labelImg);
+    imgContainer.appendChild(labelImg);
 }
 
-// 🔥 GLOBAL CACHE (add once outside)
-const asfTextAnimationCacheTest = new Set();
-const asfFontCacheTest = new Set();
-
-function renderLabelTextOnMainProductPage(data, productMedia) {
-    if (getComputedStyle(productMedia).position === "static") {
-        productMedia.style.position = "relative";
+function renderLabelTextOnMainProductPage(data, imgContainer) {
+    if (getComputedStyle(imgContainer).position === "static") {
+        imgContainer.style.position = "relative";
     }
 
     // 🚫 Prevent duplicate label
-    if (productMedia.querySelector(`.asf-label-text[data-label-text-id="${data.id}"]`)) {
+    if (imgContainer.querySelector(`.asf-label-text[data-label-id="${data.id}"]`)) {
         return;
     }
 
@@ -506,12 +565,10 @@ function renderLabelTextOnMainProductPage(data, productMedia) {
     const widthSVG = isMobile ? data.widthMobile : data.width;
     const heightSVG = isMobile ? data.heightMobile : data.height;
 
-    const productRect = productMedia.getBoundingClientRect();
+    const productRect = imgContainer.getBoundingClientRect();
     const imageWidth = productRect.width;
     const imageHeight = productRect.height;
 
-    console.log("renderLabelTextOnMainProductPage, container add label text imageWidth: ", imageWidth);
-    console.log("renderLabelTextOnMainProductPage, container add label text imageHeight: ", imageHeight);
     // Ignore small containers (icons, thumbnails, logos, etc.)
     if (imageWidth < 150 || imageHeight < 150) {
         return;
@@ -580,13 +637,13 @@ function renderLabelTextOnMainProductPage(data, productMedia) {
         const fontSlug = fontName.replace(/ /g, "+");
         const fontUrl = `https://fonts.googleapis.com/css2?family=${fontSlug}&display=swap`;
 
-        if (!asfFontCacheTest.has(fontUrl)) {
+        if (!asfFontCache.has(fontUrl)) {
             const link = document.createElement("link");
             link.href = fontUrl;
             link.rel = "stylesheet";
             document.head.appendChild(link);
 
-            asfFontCacheTest.add(fontUrl);
+            asfFontCache.add(fontUrl);
         }
     }
 
@@ -594,7 +651,12 @@ function renderLabelTextOnMainProductPage(data, productMedia) {
         loadGoogleFontIfNeeded(data.font);
 
         const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
-        const fontSizeForText = isMobile ? data.fontSizeMobile : data.fontSize;
+
+        const fontSizeForText = isMobile
+            ? (data.fontSizeMobile != null && data.fontSizeMobile !== ""
+                ? data.fontSizeMobile
+                : data.fontSize / 2)
+            : data.fontSize;
 
         const text = document.createElementNS(svgNS, "text");
         text.setAttribute("x", x);
@@ -685,7 +747,7 @@ function renderLabelTextOnMainProductPage(data, productMedia) {
 
     const outer = document.createElement("div");
     outer.className = "asf-label-text";
-    outer.setAttribute("data-label-text-id", data.id);
+    outer.setAttribute("data-label-id", data.id);
 
     outer.style.position = "absolute";
     outer.style.top = `${offsetTop}px`;
@@ -703,7 +765,7 @@ function renderLabelTextOnMainProductPage(data, productMedia) {
         const opacity = data.opacity / 100;
         const animationName = `asf_text_${data.animationType}_${data.id}`;
 
-        if (!asfTextAnimationCacheTest.has(animationName)) {
+        if (!asfTextAnimationCache.has(animationName)) {
             let keyframes = "";
 
             switch (data.animationType) {
@@ -757,7 +819,7 @@ function renderLabelTextOnMainProductPage(data, productMedia) {
                 const styleSheet = document.createElement("style");
                 styleSheet.innerHTML = keyframes;
                 document.head.appendChild(styleSheet);
-                asfTextAnimationCacheTest.add(animationName);
+                asfTextAnimationCache.add(animationName);
             }
         }
 
@@ -765,11 +827,69 @@ function renderLabelTextOnMainProductPage(data, productMedia) {
     }
 
     outer.appendChild(container);
-    productMedia.appendChild(outer);
+    imgContainer.appendChild(outer);
 }
 
 fetchLabelDetailOnMainProductPage();
+//end main image
 
+// start recommend list
+function findProductIdFromMedia(media) {
+    if (!media) return null;
+
+    let productId = null;
+
+    // Step A: find first element with data-product-id (including media itself)
+    let wrapper = media.matches?.("[data-product-id]")
+        ? media
+        : media.querySelector("[data-product-id]");
+
+    if (wrapper) {
+        productId = wrapper.getAttribute("data-product-id");
+    }
+
+    // Step B: find first element with product-id attribute
+    if (!productId) {
+        wrapper = media.matches?.("[product-id]")
+            ? media
+            : media.querySelector("[product-id]");
+
+        if (wrapper) {
+            productId = wrapper.getAttribute("product-id");
+        }
+    }
+
+    // Step C: hidden input name="product-id"
+    if (!productId) {
+        const input = media.querySelector(
+            'input[name="product-id"], input[name="product_id"]'
+        );
+
+        if (input) {
+            productId = input.value;
+        }
+    }
+
+    // Step D: extract from link id
+    if (!productId && media) {
+        const linkWithId = media.querySelector(
+            'a[id*="StandardCardNoMediaLink"], a[id*="CardLink"], a[id*="NoMediaStandardLink"]'
+        );
+        if (linkWithId && linkWithId.id) {
+            const match = linkWithId.id.match(/(\d+)$/);
+            if (match) {
+                productId = match[1];
+            }
+        }
+    }
+
+    // if null, undefined, empty string, or not a number -> return
+    if (productId == null || isNaN(Number(productId))) {
+        return null;
+    }
+
+    return productId
+}
 
 async function fetchLabelForProducts(productIds, productHandles) {
     try {
@@ -894,8 +1014,6 @@ function findAllProductRoots() {
 const processedRoots = new WeakSet();
 
 async function mainFunctionLabels() {
-    console.log("---------- list product, mainFunctionLabels start ----------");
-
     const allRoots = findAllProductRoots();
 
     // Only process new roots
@@ -904,8 +1022,6 @@ async function mainFunctionLabels() {
     if (!productRoots.length) {
         return;
     }
-
-    console.log("New productRoots:", productRoots);
 
     const rootMap = [];
     const productIds = [];
@@ -939,8 +1055,6 @@ async function mainFunctionLabels() {
         uniqueHandles
     );
 
-    console.log("labelMap:", labelMap);
-
     for (const item of rootMap) {
 
         let labels = [];
@@ -968,28 +1082,24 @@ async function mainFunctionLabels() {
         }
 
         // Mark processed AFTER rendering
-        console.log("+++++++++++++++ processedRoots add item ++++++++++++++++: ", processedRoots);
         processedRoots.add(item.root);
     }
 }
 
 // ✅ GLOBAL CACHE (outside function)
-const injectedAnimationsTest = new Set();
+const injectedAnimations = new Set();
 
 function ensureAnimationStyle(animationName, keyframeCSS) {
-    if (injectedAnimationsTest.has(animationName)) return;
+    if (injectedAnimations.has(animationName)) return;
 
     const styleTag = document.createElement("style");
     styleTag.textContent = keyframeCSS;
     document.head.appendChild(styleTag);
 
-    injectedAnimationsTest.add(animationName);
+    injectedAnimations.add(animationName);
 }
 
 function updateLabelImageOnPage(data, cardMedia) {
-    console.log(" ---------- list product, updateLabelImageOnPage, data: ", data)
-    console.log(" ---------- list product, updateLabelImageOnPage, cardMedia: ", cardMedia)
-
     if (!data?.id || !data?.iconUrl || !cardMedia) return;
 
     if (!Array.isArray(data.showOnPages) || !data.showOnPages.includes("PRODUCT_PAGE")) return;
@@ -997,8 +1107,14 @@ function updateLabelImageOnPage(data, cardMedia) {
     const img = cardMedia.querySelector('img');
     const imageContainer = img ? img.parentElement : cardMedia;
 
+    const rect = imageContainer.getBoundingClientRect();
+    // Ignore small containers (icons, thumbnails, logos, etc.)
+    if (rect.width < 150 || rect.height < 150) {
+        return;
+    }
+
     // ✅ prevent duplicate render
-    if (imageContainer.querySelector(`[data-label-image-id="${data.id}"]`)) {
+    if (imageContainer.querySelector(`[data-label-id="${data.id}"]`)) {
         return;
     }
 
@@ -1007,7 +1123,7 @@ function updateLabelImageOnPage(data, cardMedia) {
     labelImg.alt = data.name || "Label";
 
     labelImg.setAttribute("data-label-image", "true");
-    labelImg.setAttribute("data-label-image-id", data.id);
+    labelImg.setAttribute("data-label-id", data.id);
 
     const opacity = data.opacity / 100;
     const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
@@ -1216,8 +1332,8 @@ function updateLabelImageOnPage(data, cardMedia) {
     imageContainer.appendChild(labelImg);
 }
 
-const injectedTextAnimationsTest = new Set();
-const loadedFontsTest = new Set();
+const injectedTextAnimations = new Set();
+const loadedFonts = new Set();
 
 function updateLabelTextOnPage(data, cardMedia) {
     if (!data || !data.id || !data.content) {
@@ -1232,8 +1348,14 @@ function updateLabelTextOnPage(data, cardMedia) {
     const img = cardMedia.querySelector('img');
     const imageContainer = img ? img.parentElement : cardMedia;
 
+    const rect = imageContainer.getBoundingClientRect();
+    // Ignore small containers (icons, thumbnails, logos, etc.)
+    if (rect.width < 150 || rect.height < 150) {
+        return;
+    }
+
     // ✅ prevent duplicate render
-    if (imageContainer.querySelector(`[data-label-text-id="${data.id}"]`)) {
+    if (imageContainer.querySelector(`[data-label-id="${data.id}"]`)) {
         return;
     }
 
@@ -1303,7 +1425,7 @@ function updateLabelTextOnPage(data, cardMedia) {
     }
 
     function loadGoogleFontIfNeeded(fontName) {
-        if (!fontName || loadedFontsTest.has(fontName)) return;
+        if (!fontName || loadedFonts.has(fontName)) return;
 
         const fontSlug = fontName.replace(/ /g, "+");
         const fontUrl = `https://fonts.googleapis.com/css2?family=${fontSlug}&display=swap`;
@@ -1313,14 +1435,19 @@ function updateLabelTextOnPage(data, cardMedia) {
         link.rel = "stylesheet";
         document.head.appendChild(link);
 
-        loadedFontsTest.add(fontName);
+        loadedFonts.add(fontName);
     }
 
     function addText(x, y, rotate = 0) {
         loadGoogleFontIfNeeded(data.font);
 
         const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
-        const fontSizeForText = isMobile ? data.fontSizeMobile : data.fontSize;
+
+        const fontSizeForText = isMobile
+            ? (data.fontSizeMobile != null && data.fontSizeMobile !== ""
+                ? data.fontSizeMobile
+                : data.fontSize / 2)
+            : data.fontSize;
 
         const text = document.createElementNS(svgNS, "text");
         text.setAttribute("x", x);
@@ -1412,7 +1539,7 @@ function updateLabelTextOnPage(data, cardMedia) {
     container.appendChild(svg);
 
     const outer = document.createElement("div");
-    outer.setAttribute("data-label-text-id", data.id);
+    outer.setAttribute("data-label-id", data.id);
 
     outer.style.position = "absolute";
     outer.style.top = `${offsetTop}px`;
@@ -1473,11 +1600,11 @@ function updateLabelTextOnPage(data, cardMedia) {
                 break;
         }
 
-        if (!injectedTextAnimationsTest.has(animationName)) {
+        if (!injectedTextAnimations.has(animationName)) {
             const styleSheet = document.createElement("style");
             styleSheet.innerHTML = keyframes;
             document.head.appendChild(styleSheet);
-            injectedTextAnimationsTest.add(animationName);
+            injectedTextAnimations.add(animationName);
         }
 
         outer.style.animation = `${animationName} ${data.duration}s ${data.repeatAnimation}`;
@@ -1495,4 +1622,4 @@ observer.observe(document.body, {
     childList: true,
     subtree: true
 });
-
+// end recommend list

@@ -122,7 +122,6 @@ function getAllProductImageContainers() {
     }
 
     if (productMedias) {
-        console.log("getAllProductImageContainers return Priority 1, productMedias: ", productMedias);
         return [...productMedias]
             .map(media => media.querySelector("img")?.parentElement)
             .filter(Boolean);
@@ -133,7 +132,6 @@ function getAllProductImageContainers() {
     // ---------------------------------------
 
     const firstImage = findFirstAcceptedProductImage();
-    console.log("getAllProductImageContainers firstImage: ", firstImage);
 
     if (!firstImage) {
         console.warn("⚠️ Cannot find first accepted product image.");
@@ -141,14 +139,12 @@ function getAllProductImageContainers() {
     }
 
     const galleryRoot = findGalleryRoot(firstImage);
-    console.log("getAllProductImageContainers galleryRoot: ", galleryRoot);
 
     if (!galleryRoot) {
         console.warn("⚠️ Cannot find gallery root.");
         return [];
     }
 
-    console.log("getAllProductImageContainers return getMediaContainersFromRoot Priority 2");
     return getMediaContainersFromRoot(galleryRoot);
 }
 
@@ -250,7 +246,6 @@ function findGalleryRoot(firstImage) {
         node = node.parentElement;
     }
 
-    console.log("findGalleryRoot, bestRoot: ", bestRoot)
     return bestRoot;
 }
 
@@ -284,7 +279,6 @@ function getMediaContainersFromRoot(galleryRoot) {
         }
     }
 
-    console.log("getAllProductImageContainers result: ", result);
     return result;
 }
 
@@ -554,10 +548,6 @@ function renderLabelImageOnMainProductPage(data, imgContainer) {
 
     imgContainer.appendChild(labelImg);
 }
-
-// 🔥 GLOBAL CACHE (add once outside)
-const asfTextAnimationCacheTest = new Set();
-const asfFontCacheTest = new Set();
 
 function renderLabelTextOnMainProductPage(data, imgContainer) {
     if (getComputedStyle(imgContainer).position === "static") {

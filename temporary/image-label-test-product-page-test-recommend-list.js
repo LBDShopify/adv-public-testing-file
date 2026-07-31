@@ -178,8 +178,6 @@ function findAllProductRoots() {
 const processedRoots = new WeakSet();
 
 async function mainFunctionLabels() {
-    console.log("---------- list product, mainFunctionLabels start ----------");
-
     const allRoots = findAllProductRoots();
 
     // Only process new roots
@@ -188,8 +186,6 @@ async function mainFunctionLabels() {
     if (!productRoots.length) {
         return;
     }
-
-    console.log("New productRoots:", productRoots);
 
     const rootMap = [];
     const productIds = [];
@@ -223,8 +219,6 @@ async function mainFunctionLabels() {
         uniqueHandles
     );
 
-    console.log("labelMap:", labelMap);
-
     for (const item of rootMap) {
 
         let labels = [];
@@ -252,28 +246,24 @@ async function mainFunctionLabels() {
         }
 
         // Mark processed AFTER rendering
-        console.log("+++++++++++++++ processedRoots add item ++++++++++++++++: ", processedRoots);
         processedRoots.add(item.root);
     }
 }
 
 // ✅ GLOBAL CACHE (outside function)
-const injectedAnimationsTest = new Set();
+const injectedAnimations = new Set();
 
 function ensureAnimationStyle(animationName, keyframeCSS) {
-    if (injectedAnimationsTest.has(animationName)) return;
+    if (injectedAnimations.has(animationName)) return;
 
     const styleTag = document.createElement("style");
     styleTag.textContent = keyframeCSS;
     document.head.appendChild(styleTag);
 
-    injectedAnimationsTest.add(animationName);
+    injectedAnimations.add(animationName);
 }
 
 function updateLabelImageOnPage(data, cardMedia) {
-    console.log(" ---------- list product, updateLabelImageOnPage, data: ", data)
-    console.log(" ---------- list product, updateLabelImageOnPage, cardMedia: ", cardMedia)
-
     if (!data?.id || !data?.iconUrl || !cardMedia) return;
 
     if (!Array.isArray(data.showOnPages) || !data.showOnPages.includes("PRODUCT_PAGE")) return;
@@ -282,14 +272,13 @@ function updateLabelImageOnPage(data, cardMedia) {
     const imageContainer = img ? img.parentElement : cardMedia;
 
     const rect = imageContainer.getBoundingClientRect();
-    console.log("imageContainer, width: ", rect.width, " , height: ", rect.height)
     // Ignore small containers (icons, thumbnails, logos, etc.)
     if (rect.width < 150 || rect.height < 150) {
         return;
     }
 
     // ✅ prevent duplicate render
-    if (imageContainer.querySelector(`[data-label-image-id="${data.id}"]`)) {
+    if (imageContainer.querySelector(`[data-label-id="${data.id}"]`)) {
         return;
     }
 
@@ -298,7 +287,7 @@ function updateLabelImageOnPage(data, cardMedia) {
     labelImg.alt = data.name || "Label";
 
     labelImg.setAttribute("data-label-image", "true");
-    labelImg.setAttribute("data-label-image-id", data.id);
+    labelImg.setAttribute("data-label-id", data.id);
 
     const opacity = data.opacity / 100;
     const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
@@ -507,8 +496,8 @@ function updateLabelImageOnPage(data, cardMedia) {
     imageContainer.appendChild(labelImg);
 }
 
-const injectedTextAnimationsTest = new Set();
-const loadedFontsTest = new Set();
+const injectedTextAnimations = new Set();
+const loadedFonts = new Set();
 
 function updateLabelTextOnPage(data, cardMedia) {
     if (!data || !data.id || !data.content) {
@@ -524,14 +513,13 @@ function updateLabelTextOnPage(data, cardMedia) {
     const imageContainer = img ? img.parentElement : cardMedia;
 
     const rect = imageContainer.getBoundingClientRect();
-    console.log("imageContainer, width: ", rect.width, " , height: ", rect.height)
     // Ignore small containers (icons, thumbnails, logos, etc.)
     if (rect.width < 150 || rect.height < 150) {
         return;
     }
 
     // ✅ prevent duplicate render
-    if (imageContainer.querySelector(`[data-label-text-id="${data.id}"]`)) {
+    if (imageContainer.querySelector(`[data-label-id="${data.id}"]`)) {
         return;
     }
 
@@ -601,7 +589,7 @@ function updateLabelTextOnPage(data, cardMedia) {
     }
 
     function loadGoogleFontIfNeeded(fontName) {
-        if (!fontName || loadedFontsTest.has(fontName)) return;
+        if (!fontName || loadedFonts.has(fontName)) return;
 
         const fontSlug = fontName.replace(/ /g, "+");
         const fontUrl = `https://fonts.googleapis.com/css2?family=${fontSlug}&display=swap`;
@@ -611,14 +599,19 @@ function updateLabelTextOnPage(data, cardMedia) {
         link.rel = "stylesheet";
         document.head.appendChild(link);
 
-        loadedFontsTest.add(fontName);
+        loadedFonts.add(fontName);
     }
 
     function addText(x, y, rotate = 0) {
         loadGoogleFontIfNeeded(data.font);
 
         const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
-        const fontSizeForText = isMobile ? data.fontSizeMobile : data.fontSize;
+
+        const fontSizeForText = isMobile
+            ? (data.fontSizeMobile != null && data.fontSizeMobile !== ""
+                ? data.fontSizeMobile
+                : data.fontSize / 2)
+            : data.fontSize;
 
         const text = document.createElementNS(svgNS, "text");
         text.setAttribute("x", x);
@@ -710,7 +703,7 @@ function updateLabelTextOnPage(data, cardMedia) {
     container.appendChild(svg);
 
     const outer = document.createElement("div");
-    outer.setAttribute("data-label-text-id", data.id);
+    outer.setAttribute("data-label-id", data.id);
 
     outer.style.position = "absolute";
     outer.style.top = `${offsetTop}px`;
@@ -771,11 +764,11 @@ function updateLabelTextOnPage(data, cardMedia) {
                 break;
         }
 
-        if (!injectedTextAnimationsTest.has(animationName)) {
+        if (!injectedTextAnimations.has(animationName)) {
             const styleSheet = document.createElement("style");
             styleSheet.innerHTML = keyframes;
             document.head.appendChild(styleSheet);
-            injectedTextAnimationsTest.add(animationName);
+            injectedTextAnimations.add(animationName);
         }
 
         outer.style.animation = `${animationName} ${data.duration}s ${data.repeatAnimation}`;
