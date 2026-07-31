@@ -15,7 +15,7 @@ mainImageSelectors = [
 ]
 
 // ignore if image inside description, header, p...
-const ignoreImageAncestorSelectors = [
+const ignoreImageAncestorSelectorsTest = [
     // Product description
     ".rte",
     "rte-formatter",
@@ -300,7 +300,7 @@ function isPossibleProductImage(img) {
     //------------------------------------
     // Ignore description
     //------------------------------------
-    if (ignoreImageAncestorSelectors.some(selector => img.closest(selector))) {
+    if (ignoreImageAncestorSelectorsTest.some(selector => img.closest(selector))) {
         return false;
     }
 
