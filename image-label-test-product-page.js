@@ -339,7 +339,7 @@ function renderLabelImageOnMainProductPage(data, imgContainer) {
         width: `${labelWidth}px`,
         height: `${labelHeight}px`,
         opacity: data.opacity / 100,
-        zIndex: 999,
+        zIndex: 2,
         pointerEvents: "none",
         top: "auto",
         left: "auto",
@@ -1546,7 +1546,7 @@ function updateLabelTextOnPage(data, cardMedia) {
     outer.style.left = `${offsetLeft}px`;
     outer.style.width = `${widthSVG}px`;
     outer.style.height = `${heightSVG}px`;
-    outer.style.zIndex = "99";
+    outer.style.zIndex = "2";
     outer.style.pointerEvents = "none";
     outer.style.filter = `drop-shadow(${data.shadowX}px ${data.shadowY}px ${data.blur}px ${data.blurColor})`;
     outer.style.overflow = "visible";
