@@ -754,7 +754,7 @@ function renderLabelTextOnMainProductPage(data, imgContainer) {
     outer.style.left = `${offsetLeft}px`;
     outer.style.width = `${widthSVG}px`;
     outer.style.height = `${heightSVG}px`;
-    outer.style.zIndex = "99";
+    outer.style.zIndex = "2";
     outer.style.pointerEvents = "none";
     outer.style.filter = `drop-shadow(${data.shadowX}px ${data.shadowY}px ${data.blur}px ${data.blurColor})`;
     outer.style.overflow = "visible";
